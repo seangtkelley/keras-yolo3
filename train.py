@@ -1,8 +1,9 @@
 """
 Retrain the YOLO model for your own dataset.
 """
-
+import os 
 import numpy as np
+import tensorflow as tf
 import keras.backend as K
 from keras.layers import Input, Lambda
 from keras.models import Model
@@ -12,12 +13,17 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, Ear
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
 
+import argparse
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def _main():
-    annotation_path = 'train.txt'
-    log_dir = 'logs/000/'
-    classes_path = 'model_data/voc_classes.txt'
-    anchors_path = 'model_data/yolo_anchors.txt'
+    # make sure tensorflow won't run out of memory
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+    sess = tf.Session(config=config)
+    K.tensorflow_backend.set_session(sess)
+   
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
@@ -27,10 +33,10 @@ def _main():
     is_tiny_version = len(anchors)==6 # default setting
     if is_tiny_version:
         model = create_tiny_model(input_shape, anchors, num_classes,
-            freeze_body=2, weights_path='model_data/tiny_yolo_weights.h5')
+            freeze_body=2, weights_path=input_weights)
     else:
         model = create_model(input_shape, anchors, num_classes,
-            freeze_body=2, weights_path='model_data/yolo_weights.h5') # make sure you know what you freeze
+            freeze_body=2, weights_path=input_weights) # make sure you know what you freeze
 
     logging = TensorBoard(log_dir=log_dir)
     checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5',
@@ -63,7 +69,7 @@ def _main():
                 epochs=50,
                 initial_epoch=0,
                 callbacks=[logging, checkpoint])
-        model.save_weights(log_dir + 'trained_weights_stage_1.h5')
+        model.save_weights(os.path.join(output_path, 'trained_weights_stage_1.h5'))
 
     # Unfreeze and continue training, to fine-tune.
     # Train longer if the result is not good.
@@ -82,7 +88,7 @@ def _main():
             epochs=100,
             initial_epoch=50,
             callbacks=[logging, checkpoint, reduce_lr, early_stopping])
-        model.save_weights(log_dir + 'trained_weights_final.h5')
+        model.save_weights(os.path.join(output_path, 'trained_weights_final.h5'))
 
     # Further training if needed.
 
@@ -187,4 +193,46 @@ def data_generator_wrapper(annotation_lines, batch_size, input_shape, anchors, n
     return data_generator(annotation_lines, batch_size, input_shape, anchors, num_classes)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_weights", type=str, help="Path to input weigths for yolo")
+    parser.add_argument("--output_path", type=str, help="Path to output trained weights and logs")
+    parser.add_argument("--train_annots", type=str, help="Path to training annotations file")
+    parser.add_argument("--val_annots", type=str, help="Path to validation annotations file")
+    parser.add_argument("--classes", type=str, help="Path to file with class names")
+    parser.add_argument("--anchors", type=str, help="Path to yolo anchors file")
+    args = parser.parse_args()
+
+    if args.input_weights:
+        input_weights = args.input_weights
+    else:
+        input_weights = os.path.join(dir_path, 'model_data/yolo_weights.h5')
+
+    if args.output_path:
+        output_path = args.output_path
+    else:
+        output_path = '~/output/'
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    if args.train_annots:
+        annotation_path = args.train_annots
+    else:
+        annotation_path = os.path.join(dir_path, 'train.txt')
+
+    if args.classes:
+        classes_path = args.classes
+    else:
+        classes_path = os.path.join(dir_path, 'model_data/custom_classes.txt')
+
+    if args.anchors:
+        anchors_path = args.anchors
+    else:
+        anchors_path = os.path.join(dir_path, 'model_data/yolo_anchors.txt')
+
+    log_dir = os.path.join(output_path, 'logs/')
+
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     _main()
