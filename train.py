@@ -199,46 +199,25 @@ def data_generator_wrapper(annotation_lines, batch_size, input_shape, anchors, n
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_weights", type=str, help="Path to input weigths for yolo")
-    parser.add_argument("--output_path", type=str, help="Path to output trained weights and logs")
-    parser.add_argument("--train_annots", type=str, help="Path to training annotations file")
-    parser.add_argument("--val_annots", type=str, help="Path to validation annotations file")
-    parser.add_argument("--classes", type=str, help="Path to file with class names")
-    parser.add_argument("--anchors", type=str, help="Path to yolo anchors file")
+    parser.add_argument("--input_weights", type=str, default=os.path.join(dir_path, 'model_data/yolo_weights.h5'), help="Path to input weigths for yolo")
+    parser.add_argument("--output_path", type=str, default=os.path.join(os.path.expanduser("~"), 'output', 'keras_yolo3'), help="Path to output trained weights and logs")
+    parser.add_argument("--train_annots", type=str, default=os.path.join(dir_path, 'train.txt'), help="Path to training annotations file")
+    parser.add_argument("--val_annots", type=str, default=os.path.join(dir_path, 'val.txt'), help="Path to validation annotations file")
+    parser.add_argument("--classes", type=str, default=os.path.join(dir_path, 'model_data/custom_classes.txt'), help="Path to file with class names")
+    parser.add_argument("--anchors", type=str, default=os.path.join(dir_path, 'model_data/yolo_anchors.txt'), help="Path to yolo anchors file")
     args = parser.parse_args()
 
-    if args.input_weights:
-        input_weights = args.input_weights
-    else:
-        input_weights = os.path.join(dir_path, 'model_data/yolo_weights.h5')
-
-    if args.output_path:
-        output_path = args.output_path
-    else:
-        output_path = '~/output/'
+    input_weights = args.input_weights
+    output_path = args.output_path
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    if args.train_annots:
-        train_annots = args.train_annots
-    else:
-        train_annots = os.path.join(dir_path, 'train.txt')
+    train_annots = args.train_annots
+    val_annots = args.train_annots
 
-    if args.val_annots:
-        val_annots = args.train_annots
-    else:
-        val_annots = os.path.join(dir_path, 'val.txt')
-
-    if args.classes:
-        classes_path = args.classes
-    else:
-        classes_path = os.path.join(dir_path, 'model_data/custom_classes.txt')
-
-    if args.anchors:
-        anchors_path = args.anchors
-    else:
-        anchors_path = os.path.join(dir_path, 'model_data/yolo_anchors.txt')
+    classes_path = args.classes
+    anchors_path = args.anchors
 
     log_dir = os.path.join(output_path, 'logs/')
 
