@@ -39,7 +39,7 @@ log_dir = os.path.join(args.output_dir, 'logs/')
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-input_shape = (input_size, input_size) # multiple of 32, hw
+input_shape = (args.input_size, args.input_size) # multiple of 32, hw
 
 def _main():
     # make sure tensorflow won't run out of memory
@@ -122,14 +122,14 @@ def _main():
     # Further training if needed.
 
 
-def get_classes(args.classes):
+def get_classes(classes):
     '''loads the classes'''
     with open(args.classes) as f:
         class_names = f.readlines()
     class_names = [c.strip() for c in class_names]
     return class_names
 
-def get_anchors(args.anchors):
+def get_anchors(anchors):
     '''loads the anchors from a file'''
     with open(args.anchors) as f:
         anchors = f.readline()
